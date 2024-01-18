@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ <meta charset="UTF-8">
+<meta name="author" content="Кокарев П.Н.">
+ <title> Плейлист </title>
+ <style>
+  #myTable {
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  }
+  #myTable td {
+  border: 1px solid black;
+  width: 208px;
+  height: 135px;
+  }
+  .light {
+  background-color: orange;
+  }
+  .window {
+  border: 1px solid black;
+  width: 832px;
+  height: 468px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 50px;
+  text-align: center;
+  }
+  .selected-cell {
+outline: 3px solid blue;
+}
+  .cell-container {
+      position: relative;
+      display: inline-block;
+    }
+
+   .delete-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: none;
+    }
+   .cell-container:hover .delete-button {
+      display: block;
+    }
+ </style>
+ </head>
+ <body>
+   <button onclick="addCell()">Добавить ячейку</button>
+   <button onclick="deleteCell()">Удалить ячейку</button>
+   <button onclick="shuffleCells()">Перемешать ячейки</button>
+   <button onclick="Previous()">Предыдущий</button>
+   <button onclick="Next()">Следующий</button>
+   <div class = "window" id = "mainCell"></div>
+  <table id="myTable">
+  </table>
+ <script>
+    var dragElement;
+	var table = document.getElementById("myTable");
+    var cellCount = 0;
+	var selectedCell = NULL;
+
+    function allowDrop(event) {
+      event.preventDefault();
+	  var cell = document.getElementsByTagName("td");
+      for (var i = 0; i < cell.length; i++) {
+      cell[i].classList.remove("light");
+    }
+	  event.target.classList.add("light");
+    }
+
+    function drag(event) {
+      dragElement = event.target;
+    }
+
+    function drop(event) {
+      event.preventDefault();
+	  var cell = document.getElementsByTagName("td");
+      for (var i = 0; i < cell.length; i++) {
+      cell[i].classList.remove("light");
+    }
+      var targetElement = event.target;
+      // Обмен содержимым между перетаскиваемым и целевым элементами
+      var temp = dragElement.innerHTML;
+	  dragElement.innerHTML = targetElement.innerHTML;
+      targetElement.innerHTML = temp;
+	  if (dragElement == selectedCell) {
+	  targetElement.classList.add("selected-cell");
+	  dragElement.classList.remove("selected-cell");
+	  } else if (targetElement == selectedCell) {
+	  targetElement.classList.remove("selected-cell");
+	  dragElement.classList.add("selected-cell");
+	  }
+	  selectedCell = document.querySelector(".selected-cell");
+    }
+	
+	  function addCell() {
+      var table = document.getElementById("myTable");
+      var rowCount = Math.floor(cellCount/4); // Вычисляем номер строки
+      var row = table.rows[rowCount];
+      if (!row) {
+        row = table.insertRow(rowCount); // Создаем новую строку, if она не существует
+      }
+
+      var cell = row.insertCell(cellCount % 4); // Вставляем ячейку в текущую строку
+	  cell.draggable = true;
+	  cell.ondragstart = drag;
+	  cell.ondrop = drop;
+	  cell.ondragover = allowDrop;
+      cell.innerHTML = '<div class="cell-container">' +
+        'cell' + (cellCount + 1) +
+        '<button class="delete-button" onclick="deleteCellByButton(this)">×</button>' +
+        '</div>'; // Добавляем содержимое в ячейку
+	  cell.addEventListener("dblclick", function() {
+          var mainCell = document.getElementById("mainCell");
+          mainCell.innerHTML = this.innerHTML;
+		  // Удалить класс «выбранной ячейки» из предыдущей выбранной ячейки
+         if (selectedCell) {
+         selectedCell.classList.remove("selected-cell");
+         }
+		  cell.classList.add("selected-cell");
+		  // var deleteButton = this.getElementsByClassName("delete-button")[0];
+         // deleteButton.style.display = "none";
+		  selectedCell = cell;
+        });
+      cellCount++;
+      }
+	    function deleteCellByButton(button) {
+		 var cellContainer = button.parentNode.parentNode;
+		 if (cellContainer == selectedCell) {
+		 selectedCell = cellContainer;
+		 }
+         var rowIndex = cellContainer.parentNode.rowIndex;
+		 var row = table.rows[rowCount];
+         var cellIndex = cellContainer.cellIndex;
+		 var rowCount = Math.floor((cellCount - 1)/4);
+		 var cell = (cellCount - 1) % 4;
+		 while ((rowIndex != rowCount) || (cellIndex != cell)) {
+		 if (cellIndex != 3) {
+		 var nextCell = cellContainer.nextElementSibling.innerHTML;
+		 if (cellContainer.nextElementSibling == selectedCell) {
+		 selectedCell.classList.remove("selected-cell");
+		 cellContainer.classList.add("selected-cell");
+	     selectedCell = cellContainer;
+		 }
+		 cellContainer.nextElementSibling.innerHTML = cellContainer.innerHTML;
+		 cellContainer.innerHTML = nextCell;
+		 cellContainer = cellContainer.nextElementSibling;
+		 rowIndex = cellContainer.parentNode.rowIndex;
+         cellIndex = cellContainer.cellIndex;
+		 } else {
+		 rowIndex++;
+		 var nextCell = table.rows[rowIndex].cells[0].innerHTML;
+		 if (table.rows[rowIndex].cells[0] == selectedCell) {
+		 selectedCell.classList.remove("selected-cell");
+		 cellContainer.classList.add("selected-cell");
+	     selectedCell = cellContainer;
+		 }
+		 table.rows[rowIndex].cells[0].innerHTML = cellContainer.innerHTML;
+		 cellContainer.innerHTML = nextCell;
+		 cellContainer = table.rows[rowIndex].cells[0];
+		 rowIndex = cellContainer.parentNode.rowIndex;
+         cellIndex = cellContainer.cellIndex;
+		 }
+		 }
+		 cellContainer.parentNode.removeChild(cellContainer); 
+		 cellCount--;
+		 //table.rows[0].cells[0].innerHTML = selectedCell.innerHTML;
+	   }
+	  
+	    function deleteCell() {
+        if (cellCount > 0) {
+        var rowCount = Math.floor((cellCount - 1)/4);
+        var row = table.rows[rowCount];
+        var cell = row.cells[(cellCount - 1) % 4];
+        row.deleteCell((cellCount - 1) % 4); // Удалить ячейку
+        cellCount--;
+		if (cell === selectedCell) {
+        selectedCell = NULL;
+      }
+        }
+     }
+	 function shuffleCells() {
+     var cell = Array.from(document.getElementsByTagName("td"));
+     for (var i = cell.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+	
+    var temp = cell[i].innerHTML;
+    cell[i].innerHTML = cell[j].innerHTML;
+    cell[j].innerHTML = temp;
+	if (cell[j] == selectedCell) {
+	cell[j].classList.remove("selected-cell");
+	cell[i].classList.add("selected-cell");
+	selectedCell = cell[i];
+	} else if (cell[i] == selectedCell) {
+	cell[i].classList.remove("selected-cell");
+	cell[j].classList.add("selected-cell");
+	selectedCell = cell[j];
+	}
+  }
+}
+    function Next() {
+    var mainCell = document.getElementById("mainCell");
+    if (selectedCell) {
+        selectedCell.classList.remove("selected-cell");
+        var nextCell;
+        var rowIndex = selectedCell.parentNode.rowIndex;
+        var cellIndex = selectedCell.cellIndex;
+        if (cellIndex < selectedCell.parentNode.cells.length - 1) {
+            nextCell = selectedCell.nextElementSibling; // Следующая cell в той же строке
+        } else if (rowIndex < table.rows.length - 1) {
+            nextCell = table.rows[rowIndex + 1].cells[0]; // Первая cell следующей строки
+        } else {
+            nextCell = table.rows[0].cells[0]; // Первая cell первой строки
+        }
+        
+        nextCell.classList.add("selected-cell");
+		selectedCell = nextCell;
+        mainCell.innerHTML = nextCell.innerHTML;
+    }
+};
+    function Previous() {
+    var mainCell = document.getElementById("mainCell");
+    if (selectedCell) {
+    selectedCell.classList.remove("selected-cell");
+    var previousCell;
+    var rowIndex = selectedCell.parentNode.rowIndex;
+    var cellIndex = selectedCell.cellIndex;
+    
+    if (cellIndex > 0) {
+      previousCell = selectedCell.previousElementSibling; // Предыдущая cell в той же строке
+    } else if (rowIndex > 0) {
+      var previousRow = table.rows[rowIndex - 1];
+      previousCell = previousRow.cells[previousRow.cells.length - 1]; // Последняя cell предыдущей строки
+    } else {
+      var LastRow = table.rows[table.rows.length - 1];
+      previousCell = LastRow.cells[LastRow.cells.length - 1]; // Последняя cell последней строки
+    }
+    previousCell.classList.add("selected-cell");
+	selectedCell = previousCell;
+    mainCell.innerHTML = previousCell.innerHTML;
+  }
+}
+ </script>
+  </body>
+</html>
